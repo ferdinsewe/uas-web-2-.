@@ -1,1 +1,255 @@
-# uas-web-2-.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login dan CRUD Data Mahasiswa</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        #login-container, #crud-container {
+            width: 100%;
+            max-width: 800px;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        h2 {
+            margin: 0 0 20px;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin: 10px 0 5px;
+        }
+        input, select, button {
+            margin-bottom: 15px;
+            padding: 10px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .actions button {
+            background-color: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        .actions button:hover {
+            background-color: #c82333;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="login-container">
+        <h2>Login</h2>
+        <form id="login-form">
+            <label for="username">Username:</label>
+            <input type="text" id="username" required>
+            <label for="password">Password:</label>
+            <input type="password" id="password" required>
+            <button type="submit">Login</button>
+            <p id="login-error" class="hidden" style="color: red;">Username atau password salah</p>
+        </form>
+    </div>
+
+    <div id="crud-container" class="hidden">
+        <h2>CRUD Data Mahasiswa</h2>
+        <form id="mahasiswa-form">
+            <input type="hidden" id="edit-index">
+            <label for="name">Nama:</label>
+            <input type="text" id="name" required>
+            <label for="nim">NIM:</label>
+            <input type="text" id="nim" required>
+            <label for="address">Alamat:</label>
+            <input type="text" id="address" required>
+            <label for="jurusan">Jurusan:</label>
+            <select id="jurusan" required>
+                <option value="Akuntansi">Akuntansi</option>
+                <option value="Pariwisata">Pariwisata</option>
+                <option value="Bisnis">Bisnis</option>
+                <option value="Elektro">Elektro</option>
+                <option value="Sipil">Sipil</option>
+            </select>
+            <label for="prodi">Prodi:</label>
+            <select id="prodi" required>
+                <!-- Opsi akan diubah berdasarkan pilihan jurusan -->
+            </select>
+            <button type="submit">Simpan</button>
+        </form>
+        <table id="mahasiswa-table">
+            <thead>
+                <tr>
+                    <th>Nama</th>
+                    <th>NIM</th>
+                    <th>Alamat</th>
+                    <th>Jurusan</th>
+                    <th>Prodi</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Data mahasiswa akan muncul di sini -->
+            </tbody>
+        </table>
+        <a href="#" onclick="logout()">Logout</a>
+    </div>
+
+    <script>
+        // Simulasi pengguna yang valid
+        const validUsername = 'ferdin';
+        const validPassword = '12';
+
+        // Mendapatkan elemen-elemen
+        const loginContainer = document.getElementById('login-container');
+        const crudContainer = document.getElementById('crud-container');
+        const loginForm = document.getElementById('login-form');
+        const mahasiswaForm = document.getElementById('mahasiswa-form');
+        const mahasiswaTableBody = document.querySelector('#mahasiswa-table tbody');
+        const loginError = document.getElementById('login-error');
+        const jurusanSelect = document.getElementById('jurusan');
+        const prodiSelect = document.getElementById('prodi');
+
+        // Opsi prodi berdasarkan jurusan
+        const prodiOptions = {
+            'Akuntansi': ['A. Sektor Publik', 'Akuntansi'],
+            'Pariwisata': ['Perhotelan', 'UPW'],
+            'Bisnis': ['Bisnis'],
+            'Elektro': ['TKJ', 'Listrik', 'Elektronika'],
+            'Sipil': ['Jalan', 'Jembatan', 'Bangunan']
+        };
+
+        // Fungsi untuk mengupdate opsi prodi berdasarkan pilihan jurusan
+        function updateProdiOptions() {
+            const selectedJurusan = jurusanSelect.value;
+            const options = prodiOptions[selectedJurusan] || [];
+            
+            prodiSelect.innerHTML = options.map(option => `<option value="${option}">${option}</option>`).join('');
+        }
+
+        // Login
+        loginForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+        
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+        
+            if (username === validUsername && password === validPassword) {
+                loginContainer.classList.add('hidden');
+                crudContainer.classList.remove('hidden');
+                loadMahasiswa();  // Load mahasiswa data saat login berhasil
+            } else {
+                loginError.classList.remove('hidden');
+            }
+        });
+
+        // CRUD Mahasiswa
+        const mahasiswaData = JSON.parse(localStorage.getItem('mahasiswaData')) || [];
+        
+        function loadMahasiswa() {
+            mahasiswaTableBody.innerHTML = '';
+            mahasiswaData.forEach((mahasiswa, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${mahasiswa.name}</td>
+                    <td>${mahasiswa.nim}</td>
+                    <td>${mahasiswa.address}</td>
+                    <td>${mahasiswa.jurusan}</td>
+                    <td>${mahasiswa.prodi}</td>
+                    <td class="actions">
+                        <button onclick="editMahasiswa(${index})">Edit</button>
+                        <button onclick="deleteMahasiswa(${index})">Delete</button>
+                    </td>
+                `;
+                mahasiswaTableBody.appendChild(row);
+            });
+        }
+        
+        mahasiswaForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+        
+            const name = document.getElementById('name').value;
+            const nim = document.getElementById('nim').value;
+            const address = document.getElementById('address').value;
+            const jurusan = document.getElementById('jurusan').value;
+            const prodi = document.getElementById('prodi').value;
+            const editIndex = document.getElementById('edit-index').value;
+        
+            if (editIndex !== '') {
+                mahasiswaData[editIndex] = { name, nim, address, jurusan, prodi };
+            } else {
+                mahasiswaData.push({ name, nim, address, jurusan, prodi });
+            }
+        
+            localStorage.setItem('mahasiswaData', JSON.stringify(mahasiswaData));
+            mahasiswaForm.reset();
+            document.getElementById('edit-index').value = '';
+            loadMahasiswa();
+        });
+        
+        window.editMahasiswa = function(index) {
+            const mahasiswa = mahasiswaData[index];
+            document.getElementById('name').value = mahasiswa.name;
+            document.getElementById('nim').value = mahasiswa.nim;
+            document.getElementById('address').value = mahasiswa.address;
+            document.getElementById('jurusan').value = mahasiswa.jurusan;
+            document.getElementById('prodi').value = mahasiswa.prodi;
+            document.getElementById('edit-index').value = index;
+
+            updateProdiOptions();  // Update prodi options based on selected jurusan
+        };
+        
+        window.deleteMahasiswa = function(index) {
+            mahasiswaData.splice(index, 1);
+            localStorage.setItem('mahasiswaData', JSON.stringify(mahasiswaData));
+            loadMahasiswa();
+        };
+        
+        // Update prodi options when jurusan changes
+        jurusanSelect.addEventListener('change', updateProdiOptions);
+
+        // Logout
+        function logout() {
+            loginContainer.classList.remove('hidden');
+            crudContainer.classList.add('hidden');
+            loginForm.reset();
+            document.getElementById('edit-index').value = '';
+            document.getElementById('login-error').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
